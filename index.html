@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1부터 1,000,000까지 음성으로 세기</title>
+</head>
+<body>
+    <h1>1부터 1,000,000까지 음성으로 세기</h1>
+    <button id="startBtn">시작</button>
+    <button id="stopBtn">중지</button>
+    <p id="counter">0</p>
+
+    <script>
+        let currentNumber = 1;
+        let counting = false;
+        const counterDisplay = document.getElementById("counter");
+
+        // 숫자를 음성으로 읽는 함수
+        function speakNumber(number) {
+            const utterance = new SpeechSynthesisUtterance(number.toString());
+            utterance.lang = 'ko-KR';
+            utterance.rate = 1; // 속도 조절 (1이 기본값)
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 카운팅 시작 함수
+        function startCounting() {
+            if (counting) return;
+            counting = true;
+            count();
+        }
+
+        // 카운팅 중지 함수
+        function stopCounting() {
+            counting = false;
+            window.speechSynthesis.cancel(); // 음성 중지
+        }
+
+        // 1부터 1,000,000까지 세는 함수
+        function count() {
+            if (!counting || currentNumber > 1000000) return;
+
+            counterDisplay.textContent = currentNumber;
+            speakNumber(currentNumber);
+            currentNumber++;
+
+            // 다음 숫자로 넘어가기 전 짧은 지연을 설정
+            setTimeout(count, 1000); // 1초 간격 (속도 조절 가능)
+        }
+
+        // 이벤트 리스너 등록
+        document.getElementById("startBtn").addEventListener("click", startCounting);
+        document.getElementById("stopBtn").addEventListener("click", stopCounting);
+    </script>
+</body>
+</html>
