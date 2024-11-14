@@ -68,10 +68,17 @@
 
         <!-- 기능 1: 숫자 범위 설정 -->
         <label for="startNumber">시작 숫자:</label>
-        <input type="number" id="startNumber" value="100" min="1">
+        <input type="number" id="startNumber" value="1" min="1">
 
         <label for="endNumber">끝 숫자:</label>
-        <input type="number" id="endNumber" value="1" min="1">
+        <input type="number" id="endNumber" value="100" min="1">
+
+        <!-- 카운팅 방향 선택 -->
+        <label for="countDirection">카운팅 방향:</label>
+        <select id="countDirection">
+            <option value="up">증가</option>
+            <option value="down">감소</option>
+        </select>
 
         <!-- 기능 2: 음성 속도 및 음량 조절 -->
         <label for="rate">음성 속도:</label>
@@ -113,6 +120,7 @@
         const voiceSelect = document.getElementById("voiceSelect");
         const nightModeToggle = document.getElementById("nightModeToggle");
         const body = document.body;
+        const countDirectionSelect = document.getElementById("countDirection");
 
         // 기능 6: 음성 선택 기능 구현
         function populateVoiceList() {
@@ -158,6 +166,9 @@
             const selectedVoiceName = voiceSelect.value;
             utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
 
+            // 선택한 음성의 언어를 설정
+            utterance.lang = utterance.voice.lang;
+
             utterance.rate = parseFloat(rateInput.value);
             utterance.volume = parseFloat(volumeInput.value);
 
@@ -188,20 +199,33 @@
         }
 
         let isCountingUp = true; // 카운팅 방향을 나타내는 변수
+        let endNumber = 1;
 
         // 카운팅 시작 함수
         function startCounting() {
             if (counting) return;
             const startNum = parseInt(startNumberInput.value);
             const endNum = parseInt(endNumberInput.value);
+            const countDirection = countDirectionSelect.value;
 
             if (startNum === endNum) {
                 alert('시작 숫자와 끝 숫자가 같습니다.');
                 return;
             }
 
-            isCountingUp = startNum < endNum; // 시작 숫자가 작으면 증가, 크면 감소
+            isCountingUp = countDirection === 'up';
             currentNumber = startNum;
+            endNumber = endNum;
+
+            // 카운팅 방향에 따른 유효성 검사
+            if (isCountingUp && startNum > endNum) {
+                alert('증가 카운팅 시 시작 숫자는 끝 숫자보다 작아야 합니다.');
+                return;
+            } else if (!isCountingUp && startNum < endNum) {
+                alert('감소 카운팅 시 시작 숫자는 끝 숫자보다 커야 합니다.');
+                return;
+            }
+
             counting = true;
             paused = false;
             count();
