@@ -93,11 +93,10 @@
         <label for="voiceSelect">음성 선택:</label>
         <select id="voiceSelect"></select>
 
-        <!-- 기능 3: 일시 정지 및 재개 기능 -->
+        <!-- 기능 3: 버튼 수 줄이기 및 일시 정지/재개 기능 통합 -->
         <div id="controls">
             <button id="startBtn">시작</button>
-            <button id="pauseBtn">일시 정지</button>
-            <button id="resumeBtn">재개</button>
+            <button id="pauseResumeBtn">일시 정지</button>
             <button id="stopBtn">중지</button>
         </div>
 
@@ -108,7 +107,7 @@
     <script>
         let currentNumber = 1;
         let counting = false;
-        let paused = false;
+        let isPaused = false;
         let voices = [];
         const counterDisplay = document.getElementById("counter");
         const startNumberInput = document.getElementById("startNumber");
@@ -121,6 +120,7 @@
         const nightModeToggle = document.getElementById("nightModeToggle");
         const body = document.body;
         const countDirectionSelect = document.getElementById("countDirection");
+        const pauseResumeBtn = document.getElementById("pauseResumeBtn");
 
         // 기능 6: 음성 선택 기능 구현
         function populateVoiceList() {
@@ -167,14 +167,16 @@
             utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
 
             // 선택한 음성의 언어를 설정
-            utterance.lang = utterance.voice.lang;
+            if (utterance.voice) {
+                utterance.lang = utterance.voice.lang;
+            }
 
             utterance.rate = parseFloat(rateInput.value);
             utterance.volume = parseFloat(volumeInput.value);
 
             // utterance의 onend 이벤트에 다음 숫자를 호출하도록 설정
             utterance.onend = function() {
-                if (counting && !paused) {
+                if (counting && !isPaused) {
                     if (isCountingUp) {
                         currentNumber++;
                         if (currentNumber > endNumber) {
@@ -192,10 +194,12 @@
                 }
             };
 
-            window.speechSynthesis.speak(utterance);
-
-            // 숫자 표시 업데이트
-            counterDisplay.textContent = number;
+            // 일시 정지 상태가 아닐 때만 발화
+            if (!isPaused) {
+                window.speechSynthesis.speak(utterance);
+                // 숫자 표시 업데이트
+                counterDisplay.textContent = number;
+            }
         }
 
         let isCountingUp = true; // 카운팅 방향을 나타내는 변수
@@ -227,34 +231,38 @@
             }
 
             counting = true;
-            paused = false;
+            isPaused = false;
+            pauseResumeBtn.textContent = '일시 정지';
             count();
         }
 
         // 카운팅 중지 함수
         function stopCounting() {
             counting = false;
-            paused = false;
+            isPaused = false;
             window.speechSynthesis.cancel();
+            pauseResumeBtn.textContent = '일시 정지';
         }
 
-        // 일시 정지 함수
-        function pauseCounting() {
-            if (!counting || paused) return;
-            paused = true;
-            window.speechSynthesis.pause();
-        }
-
-        // 재개 함수
-        function resumeCounting() {
-            if (!counting || !paused) return;
-            paused = false;
-            window.speechSynthesis.resume();
+        // 일시 정지 및 재개 함수
+        function pauseResumeCounting() {
+            if (!counting) return;
+            if (!isPaused) {
+                // 일시 정지
+                isPaused = true;
+                window.speechSynthesis.pause();
+                pauseResumeBtn.textContent = '재개';
+            } else {
+                // 재개
+                isPaused = false;
+                window.speechSynthesis.resume();
+                pauseResumeBtn.textContent = '일시 정지';
+            }
         }
 
         // 카운팅 함수
         function count() {
-            if (!counting || paused) return;
+            if (!counting || isPaused) return;
 
             speakNumber(currentNumber);
         }
@@ -262,8 +270,7 @@
         // 이벤트 리스너 등록
         document.getElementById("startBtn").addEventListener("click", startCounting);
         document.getElementById("stopBtn").addEventListener("click", stopCounting);
-        document.getElementById("pauseBtn").addEventListener("click", pauseCounting);
-        document.getElementById("resumeBtn").addEventListener("click", resumeCounting);
+        pauseResumeBtn.addEventListener("click", pauseResumeCounting);
     </script>
 </body>
 </html>
