@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>숫자 음성 카운터</title>
     <style>
-        /* 기본 테마 스타일 */
+        /* 모바일 친화적인 디자인을 위한 CSS */
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -68,10 +68,10 @@
 
         <!-- 기능 1: 숫자 범위 설정 -->
         <label for="startNumber">시작 숫자:</label>
-        <input type="number" id="startNumber" value="1" min="1">
+        <input type="number" id="startNumber" value="100" min="1">
 
         <label for="endNumber">끝 숫자:</label>
-        <input type="number" id="endNumber" value="100" min="1">
+        <input type="number" id="endNumber" value="1" min="1">
 
         <!-- 기능 2: 음성 속도 및 음량 조절 -->
         <label for="rate">음성 속도:</label>
@@ -164,7 +164,19 @@
             // utterance의 onend 이벤트에 다음 숫자를 호출하도록 설정
             utterance.onend = function() {
                 if (counting && !paused) {
-                    currentNumber++;
+                    if (isCountingUp) {
+                        currentNumber++;
+                        if (currentNumber > endNumber) {
+                            counting = false;
+                            return;
+                        }
+                    } else {
+                        currentNumber--;
+                        if (currentNumber < endNumber) {
+                            counting = false;
+                            return;
+                        }
+                    }
                     count();
                 }
             };
@@ -175,10 +187,21 @@
             counterDisplay.textContent = number;
         }
 
+        let isCountingUp = true; // 카운팅 방향을 나타내는 변수
+
         // 카운팅 시작 함수
         function startCounting() {
             if (counting) return;
-            currentNumber = parseInt(startNumberInput.value);
+            const startNum = parseInt(startNumberInput.value);
+            const endNum = parseInt(endNumberInput.value);
+
+            if (startNum === endNum) {
+                alert('시작 숫자와 끝 숫자가 같습니다.');
+                return;
+            }
+
+            isCountingUp = startNum < endNum; // 시작 숫자가 작으면 증가, 크면 감소
+            currentNumber = startNum;
             counting = true;
             paused = false;
             count();
@@ -208,12 +231,6 @@
         // 카운팅 함수
         function count() {
             if (!counting || paused) return;
-
-            const endNumber = parseInt(endNumberInput.value);
-            if (currentNumber > endNumber) {
-                counting = false;
-                return;
-            }
 
             speakNumber(currentNumber);
         }
