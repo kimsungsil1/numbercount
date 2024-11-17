@@ -1,301 +1,197 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>숫자 음성 카운터</title>
-    <style>
-        /* 모바일 친화적인 디자인을 위한 CSS */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            line-height: 1.6;
-            background-color: #ffffff;
-            color: #000000;
-            transition: background-color 0.3s, color 0.3s;
+<script>
+    let currentNumber = 1;
+    let counting = false;
+    let isPaused = false;
+    let voices = [];
+    const counterDisplay = document.getElementById("counter");
+    const startNumberInput = document.getElementById("startNumber");
+    const endNumberInput = document.getElementById("endNumber");
+    const rateInput = document.getElementById("rate");
+    const rateValue = document.getElementById("rateValue");
+    const volumeInput = document.getElementById("volume");
+    const volumeValue = document.getElementById("volumeValue");
+    const voiceSelect = document.getElementById("voiceSelect");
+    const nightModeToggle = document.getElementById("nightModeToggle");
+    const body = document.body;
+    const countDirectionSelect = document.getElementById("countDirection");
+    const pauseResumeBtn = document.getElementById("pauseResumeBtn");
+    const startBtn = document.getElementById("startBtn");
+
+    // 기능 6: 음성 선택 기능 구현
+    function populateVoiceList() {
+        voices = window.speechSynthesis.getVoices();
+        
+        // voices가 비어있으면 조금 후 다시 시도 (보통 음성 목록이 비동기적으로 로드됨)
+        if (voices.length === 0) {
+            setTimeout(populateVoiceList, 100);
+            return;
         }
-        h1 {
-            text-align: center;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-        }
-        input, select, button {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
-        #controls {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-        #controls button {
-            width: 48%;
-            margin-top: 10px;
-        }
-        #counter {
-            text-align: center;
-            font-size: 2em;
-            margin-top: 20px;
-        }
-        /* 나이트 모드 스타일 */
-        body.night-mode {
-            background-color: #121212;
-            color: #ffffff;
-        }
-        body.night-mode input,
-        body.night-mode select,
-        body.night-mode button {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border: 1px solid #ffffff;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>숫자 음성 카운터</h1>
 
-        <!-- 나이트 모드 토글 버튼 -->
-        <button id="nightModeToggle">나이트 모드 켜기</button>
+        // 음성 목록 초기화
+        voiceSelect.innerHTML = '';
+        voices.forEach((voice) => {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.value = voice.name;
+            voiceSelect.appendChild(option);
+        });
 
-        <!-- 기능 1: 숫자 범위 설정 -->
-        <label for="startNumber">시작 숫자:</label>
-        <input type="number" id="startNumber" value="1" min="1">
-
-        <label for="endNumber">끝 숫자:</label>
-        <input type="number" id="endNumber" value="100" min="1">
-
-        <!-- 카운팅 방향 선택 -->
-        <label for="countDirection">카운팅 방향:</label>
-        <select id="countDirection">
-            <option value="up">증가</option>
-            <option value="down">감소</option>
-        </select>
-
-        <!-- 기능 2: 음성 속도 및 음량 조절 -->
-        <label for="rate">음성 속도:</label>
-        <input type="range" id="rate" min="0.5" max="2" value="1" step="0.1">
-        <span id="rateValue">1</span>
-
-        <label for="volume">음량:</label>
-        <input type="range" id="volume" min="0" max="1" value="1" step="0.1">
-        <span id="volumeValue">1</span>
-
-        <!-- 기능 6: 음성 선택 기능 -->
-        <label for="voiceSelect">음성 선택:</label>
-        <select id="voiceSelect"></select>
-
-        <!-- 기능 3: 버튼 수 줄이기 및 일시 정지/재개 기능 통합 -->
-        <div id="controls">
-            <button id="startBtn" disabled>시작</button>
-            <button id="pauseResumeBtn">일시 정지</button>
-            <button id="stopBtn">중지</button>
-        </div>
-
-        <!-- 숫자 표시 -->
-        <div id="counter">0</div>
-    </div>
-
-    <script>
-        let currentNumber = 1;
-        let counting = false;
-        let isPaused = false;
-        let voices = [];
-        const counterDisplay = document.getElementById("counter");
-        const startNumberInput = document.getElementById("startNumber");
-        const endNumberInput = document.getElementById("endNumber");
-        const rateInput = document.getElementById("rate");
-        const rateValue = document.getElementById("rateValue");
-        const volumeInput = document.getElementById("volume");
-        const volumeValue = document.getElementById("volumeValue");
-        const voiceSelect = document.getElementById("voiceSelect");
-        const nightModeToggle = document.getElementById("nightModeToggle");
-        const body = document.body;
-        const countDirectionSelect = document.getElementById("countDirection");
-        const pauseResumeBtn = document.getElementById("pauseResumeBtn");
-        const startBtn = document.getElementById("startBtn");
-
-        // 기능 6: 음성 선택 기능 구현
-        function populateVoiceList() {
-            voices = window.speechSynthesis.getVoices();
-            if (voices.length === 0) {
-                // 아직 voices가 로드되지 않았으면 조금 후에 다시 시도
-                setTimeout(populateVoiceList, 100);
-                return;
-            }
-            voiceSelect.innerHTML = '';
-            voices.forEach((voice) => {
-                const option = document.createElement('option');
-                option.textContent = voice.name + ' (' + voice.lang + ')';
-                option.value = voice.name;
-                voiceSelect.appendChild(option);
-            });
-
-            // 기본 음성 선택
-            const defaultVoice = voices.find(voice => voice.lang.startsWith('ko')) || voices[0];
+        // 기본 음성 선택 (한국어 음성 우선 선택)
+        const defaultVoice = voices.find(voice => voice.lang.startsWith('ko')) || voices[0];
+        if (defaultVoice) {
             voiceSelect.value = defaultVoice.name;
-
-            // 시작 버튼 활성화
-            startBtn.disabled = false;
         }
 
-        populateVoiceList();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = populateVoiceList;
+        // 시작 버튼 활성화
+        startBtn.disabled = false;
+    }
+
+    // 페이지 로드 시 음성 목록 초기화
+    populateVoiceList();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+
+    // 음성 속도 및 음량 값 표시 업데이트
+    rateInput.addEventListener('input', () => {
+        rateValue.textContent = rateInput.value;
+    });
+    volumeInput.addEventListener('input', () => {
+        volumeValue.textContent = volumeInput.value;
+    });
+
+    // 나이트 모드 토글 기능
+    let isNightMode = false;
+    nightModeToggle.addEventListener('click', () => {
+        isNightMode = !isNightMode;
+        if (isNightMode) {
+            body.classList.add('night-mode');
+            nightModeToggle.textContent = '나이트 모드 끄기';
+        } else {
+            body.classList.remove('night-mode');
+            nightModeToggle.textContent = '나이트 모드 켜기';
+        }
+    });
+
+    // 숫자를 읽는 함수
+    function speakNumber(number) {
+        const utterance = new SpeechSynthesisUtterance(number.toString());
+        const selectedVoiceName = voiceSelect.value;
+        utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
+
+        // 선택한 음성을 사용할 수 없을 때 경고
+        if (!utterance.voice) {
+            alert('선택한 음성을 사용할 수 없습니다. 다른 음성을 선택해주세요.');
+            return;
         }
 
-        // 음성 속도 및 음량 값 표시 업데이트
-        rateInput.addEventListener('input', () => {
-            rateValue.textContent = rateInput.value;
-        });
-        volumeInput.addEventListener('input', () => {
-            volumeValue.textContent = volumeInput.value;
-        });
+        utterance.rate = parseFloat(rateInput.value);
+        utterance.volume = parseFloat(volumeInput.value);
 
-        // 나이트 모드 토글 기능
-        let isNightMode = false;
-        nightModeToggle.addEventListener('click', () => {
-            isNightMode = !isNightMode;
-            if (isNightMode) {
-                body.classList.add('night-mode');
-                nightModeToggle.textContent = '나이트 모드 끄기';
-            } else {
-                body.classList.remove('night-mode');
-                nightModeToggle.textContent = '나이트 모드 켜기';
-            }
-        });
-
-        // 숫자를 읽는 함수
-        function speakNumber(number) {
-            const utterance = new SpeechSynthesisUtterance(number.toString());
-            const selectedVoiceName = voiceSelect.value;
-            utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
-
-            // 선택한 음성의 언어를 설정
-            if (utterance.voice) {
-                utterance.lang = utterance.voice.lang;
-            } else {
-                alert('선택한 음성을 사용할 수 없습니다.');
-                return;
-            }
-
-            utterance.rate = parseFloat(rateInput.value);
-            utterance.volume = parseFloat(volumeInput.value);
-
-            // utterance의 onend 이벤트에 다음 숫자를 호출하도록 설정
-            utterance.onend = function() {
-                if (counting && !isPaused) {
-                    if (isCountingUp) {
-                        currentNumber++;
-                        if (currentNumber > endNumber) {
-                            counting = false;
-                            pauseResumeBtn.textContent = '일시 정지';
-                            return;
-                        }
-                    } else {
-                        currentNumber--;
-                        if (currentNumber < endNumber) {
-                            counting = false;
-                            pauseResumeBtn.textContent = '일시 정지';
-                            return;
-                        }
+        // utterance의 onend 이벤트에 다음 숫자를 호출하도록 설정
+        utterance.onend = function() {
+            if (counting && !isPaused) {
+                if (isCountingUp) {
+                    currentNumber++;
+                    if (currentNumber > endNumber) {
+                        counting = false;
+                        pauseResumeBtn.textContent = '일시 정지';
+                        return;
                     }
-                    count();
+                } else {
+                    currentNumber--;
+                    if (currentNumber < endNumber) {
+                        counting = false;
+                        pauseResumeBtn.textContent = '일시 정지';
+                        return;
+                    }
                 }
-            };
-
-            // 숫자 표시 업데이트
-            counterDisplay.textContent = number;
-
-            // 일시 정지 상태가 아닐 때만 발화
-            if (!isPaused) {
-                window.speechSynthesis.speak(utterance);
+                count();
             }
+        };
+
+        // 숫자 표시 업데이트
+        counterDisplay.textContent = number;
+
+        // 일시 정지 상태가 아닐 때만 발화
+        if (!isPaused) {
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    let isCountingUp = true; // 카운팅 방향을 나타내는 변수
+    let endNumber = 1;
+
+    // 카운팅 시작 함수
+    function startCounting() {
+        if (counting) return;
+        const startNum = parseInt(startNumberInput.value);
+        const endNum = parseInt(endNumberInput.value);
+        const countDirection = countDirectionSelect.value;
+
+        if (isNaN(startNum) || isNaN(endNum)) {
+            alert('시작 숫자와 끝 숫자를 올바르게 입력하세요.');
+            return;
         }
 
-        let isCountingUp = true; // 카운팅 방향을 나타내는 변수
-        let endNumber = 1;
+        if (startNum === endNum) {
+            alert('시작 숫자와 끝 숫자가 같습니다.');
+            return;
+        }
 
-        // 카운팅 시작 함수
-        function startCounting() {
-            if (counting) return;
-            const startNum = parseInt(startNumberInput.value);
-            const endNum = parseInt(endNumberInput.value);
-            const countDirection = countDirectionSelect.value;
+        isCountingUp = countDirection === 'up';
+        currentNumber = startNum;
+        endNumber = endNum;
 
-            if (isNaN(startNum) || isNaN(endNum)) {
-                alert('시작 숫자와 끝 숫자를 올바르게 입력하세요.');
-                return;
-            }
+        // 카운팅 방향에 따른 유효성 검사
+        if (isCountingUp && startNum > endNum) {
+            alert('증가 카운팅 시 시작 숫자는 끝 숫자보다 작아야 합니다.');
+            return;
+        } else if (!isCountingUp && startNum < endNum) {
+            alert('감소 카운팅 시 시작 숫자는 끝 숫자보다 커야 합니다.');
+            return;
+        }
 
-            if (startNum === endNum) {
-                alert('시작 숫자와 끝 숫자가 같습니다.');
-                return;
-            }
+        counting = true;
+        isPaused = false;
+        pauseResumeBtn.textContent = '일시 정지';
+        count();
+    }
 
-            isCountingUp = countDirection === 'up';
-            currentNumber = startNum;
-            endNumber = endNum;
+    // 카운팅 중지 함수
+    function stopCounting() {
+        counting = false;
+        isPaused = false;
+        window.speechSynthesis.cancel();
+        pauseResumeBtn.textContent = '일시 정지';
+        counterDisplay.textContent = '0';
+    }
 
-            // 카운팅 방향에 따른 유효성 검사
-            if (isCountingUp && startNum > endNum) {
-                alert('증가 카운팅 시 시작 숫자는 끝 숫자보다 작아야 합니다.');
-                return;
-            } else if (!isCountingUp && startNum < endNum) {
-                alert('감소 카운팅 시 시작 숫자는 끝 숫자보다 커야 합니다.');
-                return;
-            }
-
-            counting = true;
+    // 일시 정지 및 재개 함수
+    function pauseResumeCounting() {
+        if (!counting) return;
+        if (!isPaused) {
+            // 일시 정지
+            isPaused = true;
+            window.speechSynthesis.pause();
+            pauseResumeBtn.textContent = '재개';
+        } else {
+            // 재개
             isPaused = false;
+            window.speechSynthesis.resume();
             pauseResumeBtn.textContent = '일시 정지';
-            count();
         }
+    }
 
-        // 카운팅 중지 함수
-        function stopCounting() {
-            counting = false;
-            isPaused = false;
-            window.speechSynthesis.cancel();
-            pauseResumeBtn.textContent = '일시 정지';
-            counterDisplay.textContent = '0';
-        }
+    // 카운팅 함수
+    function count() {
+        if (!counting || isPaused) return;
 
-        // 일시 정지 및 재개 함수
-        function pauseResumeCounting() {
-            if (!counting) return;
-            if (!isPaused) {
-                // 일시 정지
-                isPaused = true;
-                window.speechSynthesis.pause();
-                pauseResumeBtn.textContent = '재개';
-            } else {
-                // 재개
-                isPaused = false;
-                window.speechSynthesis.resume();
-                pauseResumeBtn.textContent = '일시 정지';
-            }
-        }
+        speakNumber(currentNumber);
+    }
 
-        // 카운팅 함수
-        function count() {
-            if (!counting || isPaused) return;
-
-            speakNumber(currentNumber);
-        }
-
-        // 이벤트 리스너 등록
-        startBtn.addEventListener("click", startCounting);
-        document.getElementById("stopBtn").addEventListener("click", stopCounting);
-        pauseResumeBtn.addEventListener("click", pauseResumeCounting);
-    </script>
-</body>
-</html>
+    // 이벤트 리스너 등록
+    startBtn.addEventListener("click", startCounting);
+    document.getElementById("stopBtn").addEventListener("click", stopCounting);
+    pauseResumeBtn.addEventListener("click", pauseResumeCounting);
+</script>
