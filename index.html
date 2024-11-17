@@ -153,10 +153,10 @@
         }
 
         // 페이지 로드 시 음성 목록 초기화
-        populateVoiceList();
-        if (speechSynthesis.onvoiceschanged !== undefined) {
+        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = populateVoiceList;
         }
+        populateVoiceList();
 
         // 음성 속도 및 음량 값 표시 업데이트
         rateInput.addEventListener('input', () => {
@@ -181,6 +181,10 @@
 
         // 숫자를 읽는 함수
         function speakNumber(number) {
+            if (!window.speechSynthesis) {
+                alert('이 기기는 음성 합성을 지원하지 않습니다.');
+                return;
+            }
             const utterance = new SpeechSynthesisUtterance(number.toString());
             const selectedVoiceName = voiceSelect.value;
             utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
